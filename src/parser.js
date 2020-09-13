@@ -129,7 +129,6 @@ const allTokens = [
 class ChefParser extends CstParser {
   constructor () {
     super(allTokens)
-    console.log(allTokens)
     this.RULE("title", () => {
       this.AT_LEAST_ONE(() => {
         this.CONSUME(NamePart);
@@ -148,12 +147,10 @@ class ChefParser extends CstParser {
       this.CONSUME(Ingredients)
       this.CONSUME(Period)
       this.CONSUME(NewLine)
-      this.AT_LEAST_ONE_SEP({
-        SEP: NewLine,
-        DEF: () => {
+      this.AT_LEAST_ONE(() => {
           this.SUBRULE(this.ingredient)
-        }
-      })
+          this.CONSUME1(NewLine)
+        })
     })
     this.RULE("ingredient", () => {
       this.OPTION(() => {
@@ -383,29 +380,31 @@ class ChefParser extends CstParser {
       this.CONSUME(Period)
     })
     this.RULE("loop", () => {
+      this.SUBRULE(this.beginLoop)
+      this.MANY(() => {
+        this.OPTION(() => {this.CONSUME(NewLine)})
+        this.SUBRULE(this.methodStatement)
+      })
+      this.OPTION1(() => this.CONSUME1(NewLine))
+      this.SUBRULE(this.endLoop)
+    })
+    this.RULE("beginLoop", () => {
       this.CONSUME(Identifier, {LABEL: "verb"})
-      this.CONSUME(The)
+      this.OPTION(() => this.CONSUME(The))
       this.AT_LEAST_ONE(() => {
         this.CONSUME1(Identifier, {LABEL: "zeroName"})
       })
       this.CONSUME(Period)
-      this.MANY(() => {
-        this.OPTION(() => {this.CONSUME(NewLine)})
-        this.OR([
-          {ALT: () => this.SUBRULE(this.methodStatement)},
-        ])
-      })
-      this.OPTION1(() => this.CONSUME1(NewLine))
-      this.CONSUME2(Identifier)
-      this.OPTION2(() => {
-        this.CONSUME1(The)
-        this.AT_LEAST_ONE2(() => {
-          this.CONSUME3(Identifier, {LABEL: "decName"})
-        })
+    })
+    this.RULE("endLoop", () => {
+      this.CONSUME(Identifier)
+      this.OPTION(() => {
+        this.OPTION1(() => this.CONSUME(The))
+        this.AT_LEAST_ONE(() => this.CONSUME1(Identifier, {LABEL: "decName"}))
       })
       this.CONSUME(Until)
-      this.CONSUME4(Identifier, {LABEL: "verbed"})
-      this.CONSUME1(Period)
+      this.CONSUME2(Identifier, {LABEL: "verbed"})
+      this.CONSUME(Period)
     })
     this.RULE("setAside", () => {
       this.CONSUME(Set)
@@ -413,23 +412,28 @@ class ChefParser extends CstParser {
       this.CONSUME(Period)
     })
     this.RULE("mixingBowl", () => {
-      this.OR([
-        {ALT: () => {
-          this.CONSUME(Number)
-          this.CONSUME(OrdinalSuffix)
-        }},
-        {ALT: () => this.CONSUME(The)},
-      ])
+      this.OPTION(() => {
+        this.OR([
+          {ALT: () => {
+            this.CONSUME(Number)
+            this.CONSUME(OrdinalSuffix)
+          }},
+          {ALT: () => this.CONSUME(The)},
+        ])
+      })
       this.CONSUME(Mixing)
       this.CONSUME(Bowl)
     })
     this.RULE("bakingDish", () => {
-      this.OR([
-        {ALT: () => {
-          this.CONSUME(Number)
-          this.CONSUME(OrdinalSuffix)
-        }},
-      ])
+      this.OPTION(() => {
+        this.OR([
+          {ALT: () => {
+            this.CONSUME(Number)
+            this.CONSUME(OrdinalSuffix)
+          }},
+          {ALT: () => this.CONSUME(The)},
+        ])
+      })
       this.CONSUME(Baking)
       this.CONSUME(Dish)
     })
@@ -443,31 +447,24 @@ class ChefParser extends CstParser {
       this.OPTION(() => {
         this.SUBRULE(this.ingredientList)
         this.CONSUME2(NewLine)
-        this.CONSUME3(NewLine)
       })
       this.OPTION1(() => {
         this.SUBRULE(this.cookingTime)
+        this.CONSUME3(NewLine)
         this.CONSUME4(NewLine)
-        this.CONSUME5(NewLine)
       })
       this.OPTION2(() => {
         this.SUBRULE(this.temperature)
+        this.CONSUME5(NewLine)
         this.CONSUME6(NewLine)
-        this.CONSUME7(NewLine)
       })
       this.SUBRULE(this.method)
       this.OPTION3(() => {
         this.CONSUME8(NewLine)
-        this.CONSUME9(NewLine)
         this.SUBRULE(this.serves)
       })
     })
     this.RULE("chef", () => {
-      this.MANY(() => {
-        this.SUBRULE(this.function)
-        this.CONSUME(NewLine)
-        this.CONSUME1(NewLine)
-      })
       this.SUBRULE1(this.function)
     })
     this.performSelfAnalysis()

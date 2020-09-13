@@ -35,7 +35,6 @@ class ChefInterpreter extends BaseCstParser {
     var serveResult;
     if (ctx.serves) {
       serveResult = this.visit(ctx.serves, {bakingDishes: methodresult.bakingDishes})
-      console.log(serveResult)
     }
     return {
       name: name,
@@ -61,16 +60,16 @@ class ChefInterpreter extends BaseCstParser {
     var ingredientObj = {name: "", type: "unspecified", value: null}
     var name = ""
     for (var i = 0; i < ctx.Identifier.length; i++) {
-      var nameSection = ctx.Identifier[i]
+      var nameSection = ctx.Identifier[i].image
       name += nameSection + " "
     }
     name = name.trim()
     ingredientObj.name = name;
     if (ctx.Number) {
-      ingredientObj.value = Number(ctx.Number.image)
+      ingredientObj.value = Number(ctx.Number[0].image)
     }
     if (ctx.Unit) {
-      switch (ctx.Unit.image) {
+      switch (ctx.Unit[0].image) {
         case "g":
         case "kg":
         case "pinch":
@@ -91,12 +90,10 @@ class ChefInterpreter extends BaseCstParser {
         case "teaspoons":
           ingredientObj.type = "unspecified"
           break;
-        default:
-          throw new Error("sad sad panda, interpreting error detected")
       }
     }
     if (ctx.Measure) {
-      switch (ctx.Measure.image) {
+      switch (ctx.Measure[0].image) {
         case "heaped":
         case "level":
           ingredientObj.type = "dry"
@@ -106,14 +103,14 @@ class ChefInterpreter extends BaseCstParser {
     return ingredientObj;
   }
   method (ctx, items) {
-    var mixingBowls = []
+    var mixingBowls = items.mixingBowls || []
     var bakingDishes = items.bakingDishes || []
     var ingredients = items.ingredients || [];
     var lastUsedBowl = 0;
     var lastUsedDish = 0;
     for (var i = 0; i < ctx.methodStatement.length; i++) {
       var statement = ctx.methodStatement[i]
-      const changedItems = this.visit(statement, {mixingBowls: items.mixingBowls, bakingDishes: bakingDishes, ingredients: ingredients, lastUsedBowl: lastUsedBowl})
+      const changedItems = this.visit(statement, {mixingBowls: mixingBowls, bakingDishes: bakingDishes, ingredients: ingredients, lastUsedBowl: lastUsedBowl})
       mixingBowls = changedItems.mixingBowls;
       bakingDishes = changedItems.bakingDishes;
       lastUsedBowl = changedItems.lastUsedBowl;
@@ -226,20 +223,20 @@ class ChefInterpreter extends BaseCstParser {
   put (ctx, items) {
     var name = "";
     for (var k = 0; k < ctx.Identifier.length; k++) {
-      var identifier = ctx.Identifier[i]
+      var identifier = ctx.Identifier[k]
       name += identifier.image + " ";
     }
     name = name.trim()
     var targetIngredient;
     for (var n = 0; n < items.ingredients.length; n++) {
-      var ingredient = ingredients[n]
-      if (ingredient.name === name) {
-        targetIngredient = ingredient;
+      if (items.ingredients[n].name === name) {
+        targetIngredient = items.ingredients[n];
         break;
       }
     }
-    if (targetIngredient == null || targetIngredient.value == null) throw new Error("sad sad panda, interpreting error detected")
-
+    if (targetIngredient == null || targetIngredient.value == null) {
+      throw new Error("can not put a nonexistant ingredient")
+    }
     var bowlNumber
     if (ctx.mixingBowl) {
       bowlNumber = this.visit(ctx.mixingBowl, {lastUsedBowl: items.lastUsedBowl})
@@ -247,19 +244,26 @@ class ChefInterpreter extends BaseCstParser {
     } else {
       bowlNumber = items.lastUsedBowl
     }
+    if (items.mixingBowls[bowlNumber] == null) {
+      if (bowlNumber - 1 < 0 || items.mixingBowls[bowlNumber - 1] != null) {
+        items.mixingBowls.push([])
+      } else {
+        throw new Error("bowls declared out of order")
+      }
+    }
     items.mixingBowls[bowlNumber].push({value: targetIngredient.value, type: targetIngredient.type})
     return {mixingBowls: items.mixingBowls, bakingDishes: items.bakingDishes, lastUsedBowl: items.lastUsedBowl}
   }
   fold (ctx, items) {
     var name = "";
     for (var k = 0; k < ctx.Identifier.length; k++) {
-      var identifier = ctx.Identifier[i]
+      var identifier = ctx.Identifier[k]
       name += identifier.image + " ";
     }
     name = name.trim()
     var targetIngredient;
     for (var n = 0; n < items.ingredients.length; n++) {
-      var ingredient = ingredients[n]
+      var ingredient = items.ingredients[n]
       if (ingredient.name === name) {
         targetIngredient = ingredient;
         break;
@@ -273,7 +277,6 @@ class ChefInterpreter extends BaseCstParser {
     } else {
       bowlNumber = items.lastUsedBowl
     }
-
     targetIngredient.type = items.mixingBowls[bowlNumber].type
     targetIngredient.value = items.mixingBowls[bowlNumber].value
     items.mixingBowls[bowlNumber].pop()
@@ -282,13 +285,13 @@ class ChefInterpreter extends BaseCstParser {
   add (ctx, items) {
     var name = "";
     for (var k = 0; k < ctx.Identifier.length; k++) {
-      var identifier = ctx.Identifier[i]
+      var identifier = ctx.Identifier[k]
       name += identifier.image + " ";
     }
     name = name.trim()
     var targetIngredient;
     for (var n = 0; n < items.ingredients.length; n++) {
-      var ingredient = ingredients[n]
+      var ingredient = items.ingredients[n]
       if (ingredient.name === name) {
         targetIngredient = ingredient;
         break;
@@ -301,6 +304,13 @@ class ChefInterpreter extends BaseCstParser {
       items.lastUsedBowl = bowlNumber
     } else {
       bowlNumber = items.lastUsedBowl
+    }
+    if (items.mixingBowls[bowlNumber] == null) {
+      if (bowlNumber - 1 < 0 || items.mixingBowls[bowlNumber - 1] != null) {
+        items.mixingBowls.push([])
+      } else {
+        throw new Error("bowls declared out of order")
+      }
     }
     items.mixingBowls[bowlNumber].push({value: (targetIngredient.value + items.mixingBowls[bowlNumber][items.mixingBowls[bowlNumber].length - 1]), type: "unspecified"})
     return {mixingBowls: item.mixingBowls, bakingDishes: item.bakingDishes, lastUsedBowl: items.lastUsedBowl}
@@ -308,13 +318,13 @@ class ChefInterpreter extends BaseCstParser {
   remove (ctx, items) {
     var name = "";
     for (var k = 0; k < ctx.Identifier.length; k++) {
-      var identifier = ctx.Identifier[i]
+      var identifier = ctx.Identifier[k]
       name += identifier.image + " ";
     }
     name = name.trim()
     var targetIngredient;
     for (var n = 0; n < items.ingredients.length; n++) {
-      var ingredient = ingredients[n]
+      var ingredient = items.ingredients[n]
       if (ingredient.name === name) {
         targetIngredient = ingredient;
         break;
@@ -327,6 +337,13 @@ class ChefInterpreter extends BaseCstParser {
       items.lastUsedBowl = bowlNumber
     } else {
       bowlNumber = items.lastUsedBowl
+    }
+    if (items.mixingBowls[bowlNumber] == null) {
+      if (bowlNumber - 1 < 0 || items.mixingBowls[bowlNumber - 1] != null) {
+        items.mixingBowls.push([])
+      } else {
+        throw new Error("bowls declared out of order")
+      }
     }
     items.mixingBowls[bowlNumber].push({value: (items.mixingBowls[bowlNumber][items.mixingBowls[bowlNumber].length - 1] - targetIngredient.value), type: "unspecified"})
     return {mixingBowls: item.mixingBowls, bakingDishes: item.bakingDishes, lastUsedBowl: items.lastUsedBowl}
@@ -334,13 +351,13 @@ class ChefInterpreter extends BaseCstParser {
   combine (ctx, items) {
     var name = "";
     for (var k = 0; k < ctx.Identifier.length; k++) {
-      var identifier = ctx.Identifier[i]
+      var identifier = ctx.Identifier[k]
       name += identifier.image + " ";
     }
     name = name.trim()
     var targetIngredient;
     for (var n = 0; n < items.ingredients.length; n++) {
-      var ingredient = ingredients[n]
+      var ingredient = items.ingredients[n]
       if (ingredient.name === name) {
         targetIngredient = ingredient;
         break;
@@ -353,6 +370,13 @@ class ChefInterpreter extends BaseCstParser {
       items.lastUsedBowl = bowlNumber
     } else {
       bowlNumber = items.lastUsedBowl
+    }
+    if (items.mixingBowls[bowlNumber] == null) {
+      if (bowlNumber - 1 < 0 || items.mixingBowls[bowlNumber - 1] != null) {
+        items.mixingBowls.push([])
+      } else {
+        throw new Error("bowls declared out of order")
+      }
     }
     items.mixingBowls[bowlNumber].push({value: (items.mixingBowls[bowlNumber][items.mixingBowls[bowlNumber].length - 1] * targetIngredient.value), type: "unspecified"})
     return {mixingBowls: item.mixingBowls, bakingDishes: item.bakingDishes, lastUsedBowl: items.lastUsedBowl}
@@ -360,13 +384,13 @@ class ChefInterpreter extends BaseCstParser {
   divide (ctx, items) {
     var name = "";
     for (var k = 0; k < ctx.Identifier.length; k++) {
-      var identifier = ctx.Identifier[i]
+      var identifier = ctx.Identifier[k]
       name += identifier.image + " ";
     }
     name = name.trim()
     var targetIngredient;
     for (var n = 0; n < items.ingredients.length; n++) {
-      var ingredient = ingredients[n]
+      var ingredient = items.ingredients[n]
       if (ingredient.name === name) {
         targetIngredient = ingredient;
         break;
@@ -379,6 +403,13 @@ class ChefInterpreter extends BaseCstParser {
       items.lastUsedBowl = bowlNumber
     } else {
       bowlNumber = items.lastUsedBowl
+    }
+    if (items.mixingBowls[bowlNumber] == null) {
+      if (bowlNumber - 1 < 0 || items.mixingBowls[bowlNumber - 1] != null) {
+        items.mixingBowls.push([])
+      } else {
+        throw new Error("bowls declared out of order")
+      }
     }
     items.mixingBowls[bowlNumber].push({value: (items.mixingBowls[bowlNumber][items.mixingBowls[bowlNumber].length - 1] / targetIngredient.value), type: "unspecified"})
     return {mixingBowls: item.mixingBowls, bakingDishes: item.bakingDishes, lastUsedBowl: items.lastUsedBowl}
@@ -390,6 +421,13 @@ class ChefInterpreter extends BaseCstParser {
       items.lastUsedBowl = bowlNumber
     } else {
       bowlNumber = items.lastUsedBowl
+    }
+    if (items.mixingBowls[bowlNumber] == null) {
+      if (bowlNumber - 1 < 0 || items.mixingBowls[bowlNumber - 1] != null) {
+        items.mixingBowls.push([])
+      } else {
+        throw new Error("bowls declared out of order")
+      }
     }
     var dryIngredients = items.ingredients.filter(ingredient => ingredient.type === "dry" || ingredient.type === "unspecified");
 
@@ -406,13 +444,13 @@ class ChefInterpreter extends BaseCstParser {
     }
     var name = "";
     for (var k = 0; k < ctx.Identifier.length; k++) {
-      var identifier = ctx.Identifier[i]
+      var identifier = ctx.Identifier[k]
       name += identifier.image + " ";
     }
     name = name.trim()
     var targetIngredient;
     for (var n = 0; n < items.ingredients.length; n++) {
-      var ingredient = ingredients[n]
+      var ingredient = items.ingredients[n]
       if (ingredient.name === name) {
         targetIngredient = ingredient;
         break;
@@ -430,7 +468,7 @@ class ChefInterpreter extends BaseCstParser {
       bowlNumber = items.lastUsedBowl
     }
     items.mixingBowls[bowlNumber] = items.mixingBowls[bowlNumber].map(ingredient => {return {value: ingredient.value, type: "liquid"}})
-    return {mixingBowls: item.mixingBowls, bakingDishes: item.bakingDishes, lastUsedBowl: items.lastUsedBowl}
+    return {mixingBowls: items.mixingBowls, bakingDishes: items.bakingDishes, lastUsedBowl: items.lastUsedBowl}
   }
   stir (ctx, items) {
     var bowlNumber
@@ -440,25 +478,32 @@ class ChefInterpreter extends BaseCstParser {
     } else {
       bowlNumber = items.lastUsedBowl
     }
-    const time = Number(ctx.Number.image)
+    if (items.mixingBowls[bowlNumber] == null) {
+      if (bowlNumber - 1 < 0 || items.mixingBowls[bowlNumber - 1] != null) {
+        items.mixingBowls.push([])
+      } else {
+        throw new Error("bowls declared out of order")
+      }
+    }
+    const time = Number(ctx.Number[0].image)
 
     for (i = 0; i < time && i + 1 < mixingBowls[bowlNumber].length; i++) {
       const tempItem = items.mixingBowls[bowlNumber][i-1];
       items.mixingBowls[bowlNumber][i-1] = items.mixingBowls[bowlNumber][i-2];
       items.mixingBowls[bowlNumber][i-2] = tempItem;
     }
-    return {mixingBowls: item.mixingBowls, bakingDishes: item.bakingDishes, lastUsedBowl: items.lastUsedBowl}
+    return {mixingBowls: items.mixingBowls, bakingDishes: items.bakingDishes, lastUsedBowl: items.lastUsedBowl}
   }
   stirIngredient (ctx, items) {
     var name = "";
     for (var k = 0; k < ctx.Identifier.length; k++) {
-      var identifier = ctx.Identifier[i]
+      var identifier = ctx.Identifier[k]
       name += identifier.image + " ";
     }
     name = name.trim()
     var targetIngredient;
     for (var n = 0; n < items.ingredients.length; n++) {
-      var ingredient = ingredients[n]
+      var ingredient = items.ingredients[n]
       if (ingredient.name === name) {
         targetIngredient = ingredient;
         break;
@@ -471,6 +516,13 @@ class ChefInterpreter extends BaseCstParser {
       items.lastUsedBowl = bowlNumber
     } else {
       bowlNumber = items.lastUsedBowl
+    }
+    if (items.mixingBowls[bowlNumber] == null) {
+      if (bowlNumber - 1 < 0 || items.mixingBowls[bowlNumber - 1] != null) {
+        items.mixingBowls.push([])
+      } else {
+        throw new Error("bowls declared out of order")
+      }
     }
     const time = Number(targetIngredient.value) < mixingBowls[bowlNumber].length ? Number(targetIngredient.value) : mixingBowls[bowlNumber].length - 1;
 
@@ -488,6 +540,13 @@ class ChefInterpreter extends BaseCstParser {
       items.lastUsedBowl = bowlNumber
     } else {
       bowlNumber = items.lastUsedBowl
+    }
+    if (items.mixingBowls[bowlNumber] == null) {
+      if (bowlNumber - 1 < 0 || items.mixingBowls[bowlNumber - 1] != null) {
+        items.mixingBowls.push([])
+      } else {
+        throw new Error("bowls declared out of order")
+      }
     }
     var currentIndex = items.mixingBowls[bowlNumber].length, temporaryValue, randomIndex;
 
@@ -514,6 +573,13 @@ class ChefInterpreter extends BaseCstParser {
     } else {
       bowlNumber = items.lastUsedBowl
     }
+    if (items.mixingBowls[bowlNumber] == null) {
+      if (bowlNumber - 1 < 0 || items.mixingBowls[bowlNumber - 1] != null) {
+        items.mixingBowls.push([])
+      } else {
+        throw new Error("bowls declared out of order")
+      }
+    }
     items.mixingBowls[bowlNumber] = [];
     return {mixingBowls: item.mixingBowls, bakingDishes: item.bakingDishes, lastUsedBowl: items.lastUsedBowl}
   }
@@ -525,12 +591,56 @@ class ChefInterpreter extends BaseCstParser {
     } else {
       bowlNumber = items.lastUsedBowl
     }
+    if (items.mixingBowls[bowlNumber] == null) {
+      if (bowlNumber - 1 < 0 || items.mixingBowls[bowlNumber - 1] != null) {
+        items.mixingBowls.push([])
+      } else {
+        throw new Error("bowls declared out of order")
+      }
+    }
     var dishNumber;
     dishNumber = this.visit(ctx.bakingDish, {lastUsedDish: 0})
+    if (items.bakingDishes[bowlNumber] == null) {
+      if (dishNumber - 1 < 0 || items.bakingDishes[dishNumber - 1] != null) {
+        items.bakingDishes.push([])
+      } else {
+        throw new Error("dishes declared out of order")
+      }
+    }
     items.bakingDishes[dishNumber].push(...items.mixingBowls[bowlNumber])
-    return {mixingBowls: item.mixingBowls, bakingDishes: item.bakingDishes, lastUsedBowl: items.lastUsedBowl}
+    return {mixingBowls: items.mixingBowls, bakingDishes: items.bakingDishes, lastUsedBowl: items.lastUsedBowl}
   }
   loop (ctx, items) {
+    const visitBegin = this.visit(ctx.beginLoop, items)
+    const visitEnd = this.visit(ctx.endLoop, items)
+    if (!(visitBegin.verb.toLowerCase() === visitEnd.verb.toLowerCase() ||
+    visitBegin.verb.toLowerCase() + "d" === visitEnd.verb.toLowerCase() ||
+    visitBegin.verb.toLowerCase() + "ed" == visitEnd.verb.toLowerCase() ||
+    visitBegin.verb.toLowerCase() + visitBegin.verb.toLowerCase().charAt(visitBegin.verb.length - 1) + "ed" === visitEnd.verb.toLowerCase())) {
+      throw new Error("sad sad panda, interpreting error detected")
+    }
+    while (visitBegin.ingredient.value !== 0) {
+      for (var i = 0; i < ctx.methodStatement.length; i++) {
+        var statement = ctx.methodStatement[i]
+        const changedItems = this.visit(statement, {mixingBowls: items.mixingBowls, bakingDishes: items.bakingDishes, ingredients: items.ingredients, lastUsedBowl: items.lastUsedBowl})
+        items.mixingBowls = changedItems.mixingBowls;
+        items.bakingDishes = changedItems.bakingDishes;
+        items.lastUsedBowl = changedItems.lastUsedBowl;
+        if (changedItems.result) {
+          return {result: changedItems.result, mixingBowls: items.mixingBowls, bakingDishes: changedItems.bakingDishes, lastUsedBowl: items.lastUsedBowl}
+        }
+        if (changedItems.break) {
+          return {mixingBowls: items.mixingBowls, bakingDishes: items.bakingDishes, lastUsedBowl: items.lastUsedBowl}
+        }
+      }
+      if (visitEnd.ingredient != null) {
+        visitEnd.ingredient.value--
+      }
+    }
+    return {mixingBowls: items.mixingBowls, bakingDishes: items.bakingDishes, lastUsedBowl: items.lastUsedBowl}
+  }
+  beginLoop (ctx, items) {
+    const verb = ctx.verb.image;
     var name = "";
     for (var k = 0; k < ctx.zeroName.length; k++) {
       var identifier = ctx.zeroName[i]
@@ -546,14 +656,19 @@ class ChefInterpreter extends BaseCstParser {
       }
     }
     if (zeroIng == null) throw new Error("sad sad panda, interpreting error detected")
+    return {verb: verb, ingredient: zeroIng}
+  }
+  endLoop (ctx, items) {
+    const verbed = ctx.verbed.image
+    var name = "";
     var decIng;
     if (ctx.decName) {
-      name = "";
       for (var k = 0; k < ctx.decName.length; k++) {
         var identifier = ctx.decName[i]
         name += identifier.image + " ";
       }
       name = name.trim()
+      var decIng;
       for (var n = 0; n < items.ingredients.length; n++) {
         var ingredient = ingredients[n]
         if (ingredient.name === name) {
@@ -561,32 +676,9 @@ class ChefInterpreter extends BaseCstParser {
           break;
         }
       }
+      if (decIng == null) throw new Error("sad sad panda, interpreting error detected")
     }
-    if (!(ctx.verb.image.toLowerCase() === ctx.verbed.image.toLowerCase() ||
-    ctx.verb.image.toLowerCase() + "d" === ctx.verbed.image.toLowerCase() ||
-    ctx.verb.image.toLowerCase() + "ed" == ctx.verbed.image.toLowerCase() ||
-    ctx.verb.image.toLowerCase() + ctx.verb.image.toLowerCase().charAt(ctx.verb.image.length - 1) + "ed" === ctx.verbed.image.toLowerCase())) {
-      throw new Error("sad sad panda, interpreting error detected")
-    }
-    while (zeroIng.value !== 0) {
-      for (var i = 0; i < ctx.methodStatement.length; i++) {
-        var statement = ctx.methodStatement[i]
-        const changedItems = this.visit(statement, {mixingBowls: items.mixingBowls, bakingDishes: items.bakingDishes, ingredients: items.ingredients, lastUsedBowl: items.lastUsedBowl})
-        items.mixingBowls = changedItems.mixingBowls;
-        items.bakingDishes = changedItems.bakingDishes;
-        items.lastUsedBowl = changedItems.lastUsedBowl;
-        if (changedItems.result) {
-          return {result: changedItems.result, mixingBowls: items.mixingBowls, bakingDishes: changedItems.bakingDishes, lastUsedBowl: items.lastUsedBowl}
-        }
-        if (changedItems.break) {
-          return {mixingBowls: items.mixingBowls, bakingDishes: items.bakingDishes, lastUsedBowl: items.lastUsedBowl}
-        }
-      }
-      if (decIng != null) {
-        decIng.value--
-      }
-    }
-    return {mixingBowls: items.mixingBowls, bakingDishes: items.bakingDishes, lastUsedBowl: items.lastUsedBowl}
+    return {verb: verbed, ingredient: decIng}
   }
   setAside (_ctx, items) {
     return {mixingBowls: item.mixingBowls, bakingDishes: item.bakingDishes, lastUsedBowl: items.lastUsedBowl, break: true}
@@ -610,32 +702,31 @@ class ChefInterpreter extends BaseCstParser {
   }
   serves (ctx, items) {
     var output = ""
-    for (var i = 0; i < Number(ctx.Number.image) && i < items.bakingDishes.length; i++) {
-      var dish = items.bakingDishes[i]
-      dish.foreach((ing) => {
+    for (var i = 0; i < Number(ctx.Number[0].image) && i < items.bakingDishes.length; i++) {
+      items.bakingDishes[i].forEach((ing) => {
         if (ing.type !== 'liquid') {
-          output += ing.value
+          output = ing.value + output
         } else {
-          output += String.fromCodePoint(ing.value)
+          output = String.fromCodePoint(ing.value) + output
         }
       })
     }
     return output
   }
   mixingBowl (ctx, items) {
-    if (ctx.The) {
+    if (ctx.The || !ctx.Number) {
       return items.lastUsedBowl
     } else {
-      const number = Number(ctx.Number.image)
+      const number = Number(ctx.Number[0].image - 1)
       if (isNaN(number)) throw new Error("sad sad panda, interpreting error detected")
       return number
     }
   }
   bakingDish (ctx, items) {
-    if (ctx.The) {
+    if (ctx.The || !ctx.Number) {
       return items.lastUsedDish
     } else {
-      const number = Number(ctx.Number.image)
+      const number = Number(ctx.Number[0].image - 1)
       if (isNaN(number)) throw new Error("sad sad panda, interpreting error detected")
       return number
     }
