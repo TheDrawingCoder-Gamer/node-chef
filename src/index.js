@@ -1,4 +1,4 @@
-const {interpret} = require('./visitor.js')
+const { interpret } = require("./visitor.js");
 
 const input = `Fibonacci Numbers with Caramel Sauce.
 
@@ -22,7 +22,7 @@ Ingredients.
 1 vanilla bean
 
 Method.
-Fold white sugar into mixing bowl. Put white sugar into mixing bowl. Fold brown sugar into mixing bowl. Clean mixing bowl. Put white sugar into mixing bowl. Remove vanilla bean. Fold white sugar into mixing bowl. Melt white sugar. Put vanilla bean into mixing bowl. Refrigerate. Heat white sugar until melted. Put white sugar into mixing bowl. Remove vanilla bean. Fold white sugar into mixing bowl. Caramelise white sugar. Put vanilla bean into mixing bowl. Refrigerate. Cook white sugar until caramelised. Put white sugar into mixing bowl. Serve with caramel sauce. Fold brown sugar into mixing bowl. Put white sugar into mixing bowl. Add vanilla bean. Serve with caramel sauce. Add brown sugar.`
+Fold white sugar into mixing bowl. Put white sugar into mixing bowl. Fold brown sugar into mixing bowl. Clean mixing bowl. Put white sugar into mixing bowl. Remove vanilla bean. Fold white sugar into mixing bowl. Melt white sugar. Put vanilla bean into mixing bowl. Refrigerate. Heat white sugar until melted. Put white sugar into mixing bowl. Remove vanilla bean. Fold white sugar into mixing bowl. Caramelise white sugar. Put vanilla bean into mixing bowl. Refrigerate. Cook white sugar until caramelised. Put white sugar into mixing bowl. Serve with caramel sauce. Fold brown sugar into mixing bowl. Put white sugar into mixing bowl. Add vanilla bean. Serve with caramel sauce. Add brown sugar.`;
 
 const souffle = `Hello World Souffle.
 
@@ -42,6 +42,6 @@ Ingredients.
 Method.
 Put potatoes into the mixing bowl. Put dijon mustard into the mixing bowl. Put lard into the mixing bowl. Put red salmon into the mixing bowl. Put oil into the mixing bowl. Put water into the mixing bowl. Put zucchinis into the mixing bowl. Put oil into the mixing bowl. Put lard into the mixing bowl. Put lard into the mixing bowl. Put eggs into the mixing bowl. Put haricot beans into the mixing bowl. Liquefy contents of the mixing bowl. Pour contents of the mixing bowl into the baking dish.
 
-Serves 1.`
+Serves 1.`;
 
-console.log(interpret(input).result)
+console.log(interpret(input).result);
