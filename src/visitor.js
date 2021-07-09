@@ -115,7 +115,6 @@ class ChefInterpreter extends BaseCstParser {
     var bakingDishes = items.bakingDishes || [];
     var ingredients = items.ingredients || [];
     var lastUsedBowl = 0;
-    var lastUsedDish = 0;
     for (var i = 0; i < ctx.methodStatement.length; i++) {
       var statement = ctx.methodStatement[i];
       const changedItems = this.visit(statement, {
@@ -199,32 +198,32 @@ class ChefInterpreter extends BaseCstParser {
   call(ctx, items) {
     var name = "";
     for (var k = 0; k < ctx.Identifier.length; k++) {
-      var identifier = ctx.Identifier[i];
+      var identifier = ctx.Identifier[k];
       name += identifier.image + " ";
     }
     name = name.trim();
-    results = this.visit(parser.chef(), {
+    const results = this.visit(parser.chef(), {
       name: name,
       mixingBowls: deepClone(items.mixingBowls),
       bakingDishes: deepClone(items.bakingDishes),
     });
     items.mixingBowls[0].push(...results.mixingBowls[0]);
     return {
-      mixingBowls: item.mixingBowls,
-      bakingDishes: item.bakingDishes,
+      mixingBowls: items.mixingBowls,
+      bakingDishes: items.bakingDishes,
       lastUsedBowl: items.lastUsedBowl,
     };
   }
   read(ctx, items) {
     var name = "";
     for (var k = 0; k < ctx.Identifier.length; k++) {
-      var identifier = ctx.Identifier[i];
+      var identifier = ctx.Identifier[k];
       name += identifier.image + " ";
     }
     name = name.trim();
     var targetIngredient;
     for (var n = 0; n < items.ingredients.length; n++) {
-      var ingredient = ingredients[n];
+      var ingredient = items.ingredients[n];
       if (ingredient.name === name) {
         targetIngredient = ingredient;
         break;
@@ -366,8 +365,8 @@ class ChefInterpreter extends BaseCstParser {
       type: "unspecified",
     });
     return {
-      mixingBowls: item.mixingBowls,
-      bakingDishes: item.bakingDishes,
+      mixingBowls: items.mixingBowls,
+      bakingDishes: items.bakingDishes,
       lastUsedBowl: items.lastUsedBowl,
     };
   }
@@ -412,8 +411,8 @@ class ChefInterpreter extends BaseCstParser {
       type: "unspecified",
     });
     return {
-      mixingBowls: item.mixingBowls,
-      bakingDishes: item.bakingDishes,
+      mixingBowls: items.mixingBowls,
+      bakingDishes: items.bakingDishes,
       lastUsedBowl: items.lastUsedBowl,
     };
   }
@@ -458,8 +457,8 @@ class ChefInterpreter extends BaseCstParser {
       type: "unspecified",
     });
     return {
-      mixingBowls: item.mixingBowls,
-      bakingDishes: item.bakingDishes,
+      mixingBowls: items.mixingBowls,
+      bakingDishes: items.bakingDishes,
       lastUsedBowl: items.lastUsedBowl,
     };
   }
@@ -504,8 +503,8 @@ class ChefInterpreter extends BaseCstParser {
       type: "unspecified",
     });
     return {
-      mixingBowls: item.mixingBowls,
-      bakingDishes: item.bakingDishes,
+      mixingBowls: items.mixingBowls,
+      bakingDishes: items.bakingDishes,
       lastUsedBowl: items.lastUsedBowl,
     };
   }
@@ -533,8 +532,8 @@ class ChefInterpreter extends BaseCstParser {
 
     items.mixingBowls[bowlNumber].push(dryIngredients);
     return {
-      mixingBowls: item.mixingBowls,
-      bakingDishes: item.bakingDishes,
+      mixingBowls: items.mixingBowls,
+      bakingDishes: items.bakingDishes,
       lastUsedBowl: items.lastUsedBowl,
     };
   }
@@ -565,8 +564,8 @@ class ChefInterpreter extends BaseCstParser {
     if (targetIngredient == null)
       throw new Error("sad sad panda, interpreting error detected");
     return {
-      mixingBowls: item.mixingBowls,
-      bakingDishes: item.bakingDishes,
+      mixingBowls: items.mixingBowls,
+      bakingDishes: items.bakingDishes,
       lastUsedBowl: items.lastUsedBowl,
     };
   }
@@ -610,7 +609,7 @@ class ChefInterpreter extends BaseCstParser {
     }
     const time = Number(ctx.Number[0].image);
 
-    for (i = 0; i < time && i + 1 < mixingBowls[bowlNumber].length; i++) {
+    for (var i = 0; i < time && i + 1 < items.mixingBowls[bowlNumber].length; i++) {
       const tempItem = items.mixingBowls[bowlNumber][i - 1];
       items.mixingBowls[bowlNumber][i - 1] =
         items.mixingBowls[bowlNumber][i - 2];
@@ -656,19 +655,19 @@ class ChefInterpreter extends BaseCstParser {
       }
     }
     const time =
-      Number(targetIngredient.value) < mixingBowls[bowlNumber].length
+      Number(targetIngredient.value) < items.mixingBowls[bowlNumber].length
         ? Number(targetIngredient.value)
-        : mixingBowls[bowlNumber].length - 1;
+        : items.mixingBowls[bowlNumber].length - 1;
 
-    for (i = 0; i < time && i + 1 < mixingBowls[bowlNumber].length; i++) {
+    for (var i = 0; i < time && i + 1 < items.mixingBowls[bowlNumber].length; i++) {
       const tempItem = items.mixingBowls[bowlNumber][i - 1];
       items.mixingBowls[bowlNumber][i - 1] =
         items.mixingBowls[bowlNumber][i - 2];
       items.mixingBowls[bowlNumber][i - 2] = tempItem;
     }
     return {
-      mixingBowls: item.mixingBowls,
-      bakingDishes: item.bakingDishes,
+      mixingBowls: items.mixingBowls,
+      bakingDishes: items.bakingDishes,
       lastUsedBowl: items.lastUsedBowl,
     };
   }
@@ -707,8 +706,8 @@ class ChefInterpreter extends BaseCstParser {
     }
 
     return {
-      mixingBowls: item.mixingBowls,
-      bakingDishes: item.bakingDishes,
+      mixingBowls: items.mixingBowls,
+      bakingDishes: items.bakingDishes,
       lastUsedBowl: items.lastUsedBowl,
     };
   }
@@ -731,8 +730,8 @@ class ChefInterpreter extends BaseCstParser {
     }
     items.mixingBowls[bowlNumber] = [];
     return {
-      mixingBowls: item.mixingBowls,
-      bakingDishes: item.bakingDishes,
+      mixingBowls: items.mixingBowls,
+      bakingDishes: items.bakingDishes,
       lastUsedBowl: items.lastUsedBowl,
     };
   }
@@ -827,13 +826,13 @@ class ChefInterpreter extends BaseCstParser {
     const verb = ctx.verb.image;
     var name = "";
     for (var k = 0; k < ctx.zeroName.length; k++) {
-      var identifier = ctx.zeroName[i];
+      var identifier = ctx.zeroName[k];
       name += identifier.image + " ";
     }
     name = name.trim();
     var zeroIng;
     for (var n = 0; n < items.ingredients.length; n++) {
-      var ingredient = ingredients[n];
+      var ingredient = items.ingredients[n];
       if (ingredient.name === name) {
         zeroIng = ingredient;
         break;
@@ -849,13 +848,12 @@ class ChefInterpreter extends BaseCstParser {
     var decIng;
     if (ctx.decName) {
       for (var k = 0; k < ctx.decName.length; k++) {
-        var identifier = ctx.decName[i];
+        var identifier = ctx.decName[k];
         name += identifier.image + " ";
       }
       name = name.trim();
-      var decIng;
       for (var n = 0; n < items.ingredients.length; n++) {
-        var ingredient = ingredients[n];
+        var ingredient = items.ingredients[n];
         if (ingredient.name === name) {
           decIng = ingredient;
           break;
@@ -868,8 +866,8 @@ class ChefInterpreter extends BaseCstParser {
   }
   setAside(_ctx, items) {
     return {
-      mixingBowls: item.mixingBowls,
-      bakingDishes: item.bakingDishes,
+      mixingBowls: items.mixingBowls,
+      bakingDishes: items.bakingDishes,
       lastUsedBowl: items.lastUsedBowl,
       break: true,
     };
@@ -892,15 +890,15 @@ class ChefInterpreter extends BaseCstParser {
         });
       }
       return {
-        mixingBowls: item.mixingBowls,
-        bakingDishes: item.bakingDishes,
+        mixingBowls: items.mixingBowls,
+        bakingDishes: items.bakingDishes,
         lastUsedBowl: items.lastUsedBowl,
         result: output,
       };
     }
     return {
-      mixingBowls: item.mixingBowls,
-      bakingDishes: item.bakingDishes,
+      mixingBowls: items.mixingBowls,
+      bakingDishes: items.bakingDishes,
       lastUsedBowl: items.lastUsedBowl,
       result: true,
     };
@@ -942,13 +940,13 @@ class ChefInterpreter extends BaseCstParser {
       return number;
     }
   }
-  comment(ctx, items) {
+  comment() {
     return;
   }
-  cookingTime(ctx, items) {
+  cookingTime() {
     return;
   }
-  temperature(ctx, items) {
+  temperature() {
     return;
   }
 }

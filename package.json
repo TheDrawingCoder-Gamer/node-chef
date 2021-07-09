@@ -10,6 +10,7 @@
     "esolang",
     "chef"
   ],
+  "repository": "https://github.com/TheDrawingCoder-Gamer/node-chef",
   "author": "bulbyvr",
   "license": "Unlicense",
   "dependencies": {
@@ -17,6 +18,12 @@
     "clone-deep": "^4.0.1"
   },
   "devDependencies": {
+    "@babel/cli": "^7.11.6",
+    "@babel/core": "^7.11.6",
+    "@babel/eslint-parser": "^7.11.5",
+    "@babel/preset-env": "^7.11.5",
+    "eslint": "^7.9.0",
+    "eslint-config-prettier": "^6.11.0",
     "prettier": "^2.1.1"
   }
 }
